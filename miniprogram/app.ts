@@ -1,5 +1,7 @@
 //app.ts
+import camelcaseKeys = require("camelcase-keys")
 import { IAppOption } from "./appoption"
+import { server } from "./service/proto_gen/trip_pb"
 import { getSetting, getUserInfo } from "./utils/wxapi"
 
 let resolveUserInfo: (value: WechatMiniprogram.UserInfo | PromiseLike<WechatMiniprogram.UserInfo>) => void
@@ -18,7 +20,14 @@ App<IAppOption>({
     wx.request({
       url: "http://localhost:8080/trip/trip123",
       method: "GET",
-      success: console.log,
+      success: res => {
+        const getTripRes = server.GetTripResponse.fromObject(camelcaseKeys(res.data as object,{
+          deep: true,
+        }))
+        console.log(getTripRes)
+        //TODO: 下面这行只是测试，上线时应该用if来做一层保护
+        console.log("status is ",server.TripStatus[getTripRes.trip?.status!])
+      },
       fail: console.error,
     })
     // 展示本地存储能力

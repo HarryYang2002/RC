@@ -18,6 +18,7 @@
 		"preloadBackgroundData": false,
 		"minified": true,
 		"autoAudits": false,
+		"nodeModules": true,
 		"uglifyFileName": false,
 		"uploadWithSourceMap": true,
 		"enhance": true,
