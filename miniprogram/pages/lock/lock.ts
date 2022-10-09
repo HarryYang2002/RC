@@ -1,4 +1,5 @@
 import { IAppOption } from "../../appoption";
+import { tripService } from "../../service/trip";
 import { routing } from "../../utils/routing";
 
 const shareLocationKey = "share_Location"
@@ -42,15 +43,11 @@ Page({
 			}
 		})
 	},
-	// onGetUserInfo(e: any) {
-	// 	console.log(e)
-	// 	const userInfo: WechatMiniprogram.UserInfo = e.detail.userInfo
-	// 	getApp<IAppOption>().resolveUserInfo(userInfo)
-	// },
+
 	getUserProfile() {
 		// 推荐使用 wx.getUserProfile 获取用户信息，开发者每次通过该接口获取用户个人信息均需用户确认
-    // 开发者妥善保管用户快速填写的头像昵称，避免重复弹窗
-    wx.getUserInfo
+		// 开发者妥善保管用户快速填写的头像昵称，避免重复弹窗
+		wx.getUserInfo
 		wx.getUserProfile({
 			desc: '用于完善用户资料', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
 			success: (res) => {
@@ -81,44 +78,6 @@ Page({
 		wx.getLocation({
 			type: "gjc02",
 			success: loc => {
-				// wx.request({
-				// 	url: "https://api.coolcar.cn",
-				// 	dataType: "json",
-				// 	data: {
-				// 		location: {
-				// 			latitude: loc.latitude,
-				// 			longitude: loc.longitude,
-				// 		},
-				// 		avatarURL: this.data.shareLocation
-				// 			? this.data.avatarURL : '',
-				// 	},
-				// 	header: {
-				// 		authorization: "ashfasdkjgh",
-				// 	},
-				// 	method: "POST",
-				// 	responseType: "text",
-				// 	success(res) {
-				// 		if (res.statusCode === 200) {
-				// 			const tripID = res.data.tripId;
-				// 			wx.showLoading({
-				// 				title: "开锁中",
-				// 				mask: true,
-				// 			})
-				// 			setTimeout(() => {
-				// 				wx.redirectTo({
-				// 					// url: `/pages/driving/driving?trip_id=${tripID}`,
-				// 					url: routing.driving({
-				// 						trip_id: tripID,
-				// 					}),
-				// 					complete: () => {
-				// 						wx.hideLoading()
-				// 					}
-				// 				})
-				// 			}, 2000);
-				// 		}
-				// 	}
-				// })
-
 				console.log("starting a trip", {
 					location: {
 						latitude: loc.latitude,
@@ -128,6 +87,10 @@ Page({
 						? this.data.avatarURL : '',
 				})
 
+				tripService.CreateTrip({
+					start:"abc",
+				})
+				return
 				const tripID = "trip456";
 
 				wx.showLoading({
