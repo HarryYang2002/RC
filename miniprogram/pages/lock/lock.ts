@@ -4,6 +4,7 @@ import { routing } from "../../utils/routing";
 
 const shareLocationKey = "share_Location"
 Page({
+	carID: "",
 	data: {
 		userInfo: {},
 		hasUserInfo: false,
@@ -13,7 +14,7 @@ Page({
 	},
 	async onLoad(opt: Record<"car_id", string>) {
 		const o: routing.LockOpts = opt
-		console.log("unlocking car", o.car_id);
+		this.carID = o.car_id
 		let that = this
 		await wx.getStorage({
 			key: 'userInfo',
@@ -77,7 +78,7 @@ Page({
 	onUnlockTap() {
 		wx.getLocation({
 			type: "gjc02",
-			success: loc => {
+			success: async loc => {
 				console.log("starting a trip", {
 					location: {
 						latitude: loc.latitude,
@@ -87,11 +88,18 @@ Page({
 						? this.data.avatarURL : '',
 				})
 
-				tripService.CreateTrip({
-					start:"abc",
+				if (!this.carID) {
+					console.error("no carID specified")
+					return
+				}
+				const trip = await tripService.CreateTrip({
+					start: loc,
+					carId: this.carID,
 				})
-				return
-				const tripID = "trip456";
+				if (!trip.id) {
+					console.error("no TripID int response",trip)
+					return
+				}
 
 				wx.showLoading({
 					title: "开锁中",
@@ -101,7 +109,7 @@ Page({
 					wx.redirectTo({
 						// url: `/pages/driving/driving?trip_id=${tripID}`,
 						url: routing.driving({
-							trip_id: tripID,
+							trip_id: trip.id!,
 						}),
 						complete: () => {
 							wx.hideLoading()
