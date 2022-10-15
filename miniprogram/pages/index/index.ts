@@ -1,3 +1,5 @@
+import { rental } from "../../service/proto_gen/rental/rental_pb";
+import { tripService } from "../../service/trip";
 import { routing } from "../../utils/routing";
 
 Page({
@@ -84,33 +86,61 @@ Page({
 		})
 	},
 
-	onScanTap() {
-		wx.scanCode({
-			success: () => {
-				wx.showModal({
-					title: "身份认证",
-					content: "需要身份认证才能租车",
-					success: (res) => {
-						if (res.confirm) {
-							console.log('用户点击确定')
-							const carID = "car123"
-							const redirectURL = routing.lock({
-								car_id: carID,
+	async onScanTap() {
+		const trips = await tripService.getTrips(rental.v1.TripStatus.IN_PROGRESS)
+		if ((trips.trips?.length || 0) > 0) {
+			wx.showModal({
+				title: "行程中",
+				content: "当前有正在进行的行程，将跳转到行程页面",
+				success: (res) => {
+					if (res.confirm) {
+						console.log("用户点击确定")
+						wx.navigateTo({
+							url: routing.driving({
+								trip_id: trips.trips![0].id!,
 							})
-							wx.navigateTo({
-								//url: `/pages/register/register?redirect=${encodeURIComponent(redirectURL)}`
-								url: routing.register({
-									redirectURL: redirectURL,
+						})
+					} else if (res.cancel) {
+						console.log("用户点击取消")
+					}
+				}
+			})
+			// wx.navigateTo({
+			// 	url:routing.driving({
+			// 		trip_id:trips.trips![0].id!,
+			// 	})
+			// })
+			// return
+		} else {
+			wx.scanCode({
+				success: () => {
+					wx.showModal({
+						title: "身份认证",
+						content: "需要身份认证才能租车",
+						success: (res) => {
+							if (res.confirm) {
+								console.log('用户点击确定')
+								const carID = "car123"
+								const redirectURL = routing.lock({
+									car_id: carID,
 								})
-							})
-						} else if (res.cancel) {
-							console.log("用户点击取消")
-						}
-					},
-				})
-			},
-			fail: console.error,
-		})
+								wx.navigateTo({
+									//url: `/pages/register/register?redirect=${encodeURIComponent(redirectURL)}`
+									url: routing.register({
+										redirectURL: redirectURL,
+									})
+								})
+							} else if (res.cancel) {
+								console.log("用户点击取消")
+							}
+						},
+					})
+				},
+				fail: console.error,
+			})
+		}
+
+
 	},
 
 

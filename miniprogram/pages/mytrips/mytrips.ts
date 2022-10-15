@@ -123,7 +123,7 @@ Page({
 		//获取所有的trip
 		//const res = await tripService.GetTrips()
 		//获取指定状态下的trip
-		const res = await tripService.GetTrips(rental.v1.TripStatus.FINISHED)
+		const res = await tripService.getTrips(rental.v1.TripStatus.FINISHED)
 		this.populateTrips()
 		let that = this
 		await wx.getStorage({

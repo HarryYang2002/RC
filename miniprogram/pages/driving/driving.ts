@@ -21,6 +21,7 @@ function formatFee(cents: number) {
 
 Page({
     timer: undefined as number | undefined,
+    tripID: "",
     data: {
         location: {
             latitude: 32.92,
@@ -33,10 +34,11 @@ Page({
 
     onLoad(opt: Record<"trip_id", string>) {
         const o: routing.DrivingOpts = opt
+        this.tripID = o.trip_id
         //测试所用的trip_id
-        o.trip_id ="634a77d077c91c9247d6bab8"
+        //o.trip_id ="634a77d077c91c9247d6bab8"
         console.log("current trip", o.trip_id);
-        tripService.GetTrip(o.trip_id).then(console.log)
+        tripService.getTrip(o.trip_id).then(console.log)
         this.setupLocationUpdator()
         this.setupTimer()
     },
@@ -76,8 +78,16 @@ Page({
     },
 
     onEndTripTap() {
-        wx.redirectTo({
-            url:routing.mytrips(),
+        tripService.finishTrip(this.tripID).then(() => {
+            wx.redirectTo({
+                url: routing.mytrips(),
+            })
+        }).catch(err => {
+            console.error(err);
+            wx.showToast({
+                title:"结束",
+                icon:"none",
+            })
         })
     }
 })
