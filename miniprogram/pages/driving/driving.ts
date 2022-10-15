@@ -1,5 +1,6 @@
 // pages/driving/driving.ts
 
+import { tripService } from "../../service/trip";
 import { routing } from "../../utils/routing";
 
 const centPerSec = 0.7
@@ -32,7 +33,10 @@ Page({
 
     onLoad(opt: Record<"trip_id", string>) {
         const o: routing.DrivingOpts = opt
+        //测试所用的trip_id
+        o.trip_id ="634a77d077c91c9247d6bab8"
         console.log("current trip", o.trip_id);
+        tripService.GetTrip(o.trip_id).then(console.log)
         this.setupLocationUpdator()
         this.setupTimer()
     },
