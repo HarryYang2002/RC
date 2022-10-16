@@ -1,16 +1,19 @@
 import { IAppOption } from "../../appoption";
 import { rental } from "../../service/proto_gen/rental/rental_pb";
 import { tripService } from "../../service/trip";
+import { formatDuration, formatFee } from "../../utils/format";
 import { routing } from "../../utils/routing";
 
 interface Trip {
 	id: string
+	shortId: string
 	start: string
 	end: string
 	duration: string
 	fee: string
 	distance: string
 	status: string
+	inProgress: boolean
 }
 
 interface MainItem {
@@ -35,11 +38,22 @@ interface MainItemQueryResult {
 	}
 }
 
+const tripStatusMap = new Map([
+	[rental.v1.TripStatus.IN_PROGRESS, "进行中"],
+	[rental.v1.TripStatus.FINISHED, "已完成"],
+	// [rental.v1.TripStatus.IS_NOT_SPECIFIED,""]
+])
+
 // pages/mytrips/mytrips.ts
 Page({
 	scrollStates: {
 		mainItems: [] as MainItemQueryResult[],
 	},
+
+	layoutResolver: undefined as ((value: unknown) => void) | undefined,
+
+	//layoutResolver: value as (value: unknown) => void,
+
 	data: {
 		indicatorDots: true,
 		autoPlay: false,
@@ -120,11 +134,17 @@ Page({
 	},
 
 	async onLoad() {
+		const layoutReady = new Promise((resolve) => {
+			this.layoutResolver = resolve
+		})
+		// const [trips] = await Promise.all([tripService.getTrips(),layoutReady])
+		// this.populateTrips(trips.trips!)
 		//获取所有的trip
-		//const res = await tripService.GetTrips()
+		Promise.all([tripService.getTrips(), layoutReady]).then(([trips]) =>{
+			this.populateTrips(trips.trips!)
+		})
 		//获取指定状态下的trip
-		const res = await tripService.getTrips(rental.v1.TripStatus.FINISHED)
-		this.populateTrips()
+		//const res = await tripService.getTrips(rental.v1.TripStatus.FINISHED)
 		let that = this
 		await wx.getStorage({
 			key: 'userInfo',
@@ -150,45 +170,75 @@ Page({
 			this.setData({
 				tripsHeight: height,
 				navCount: Math.round(height / 50),
+			}, () => {
+				if (this.layoutResolver) {
+					this.layoutResolver(null)
+				}
 			})
 		}).exec()
 	},
 
-	populateTrips() {
+	populateTrips(trips: rental.v1.ITripEntity[]) {
 		const mainItems: MainItem[] = []
 		const navItems: NavItem[] = []
 		let navSel = ''
 		let prevNav = ''
-		for (let i = 0; i < 100; i++) {
+		for (let i = 0; i < trips.length; i++) {
+			const trip = trips[i]
 			const mainId = 'main-' + i
 			const navId = 'nav-' + i
-			const tripId = (10001 + i).toString()
+			const shortId = trip.id?.substring(trip.id.length - 6)
 			if (!prevNav) {
 				prevNav = navId
+			}
+			// distance: '27.0公里',
+			// duration: '0时44分',
+			// fee: '128.00元',
+			// status: '已完成',
+			const tripData: Trip = {
+				id: trip.id!,
+				shortId: "****" + shortId,
+				start: trip.trip?.start?.poiName || "未知",
+				end: '',
+				distance: '',
+				duration: '',
+				fee: '',
+				status: tripStatusMap.get(trip.trip?.status!) || "未知",
+				inProgress: trip.trip?.status ===  rental.v1.TripStatus.IN_PROGRESS,
+			}
+			const end = trip.trip?.end
+
+			//放在if中会报<应为表达式。ts(1109)>的错
+			const dur = formatDuration((end?.timestampSec || 0) - (trip.trip?.start?.timestampSec || 0))
+			if (end) {
+				tripData.end = end.poiName || "未知",
+					tripData.distance = end.kmDriven?.toFixed(1) + "公里",
+					tripData.fee = formatFee(end.feeCent || 0),
+					tripData.duration = `${dur.hh}时${dur.mm}分`
 			}
 			mainItems.push({
 				id: mainId,
 				navId: navId,
 				navScrollId: prevNav,
-				data: {
-					id: tripId,
-					start: '东方明珠',
-					end: '迪士尼',
-					distance: '27.0公里',
-					duration: '0时44分',
-					fee: '128.00元',
-					status: '已完成',
-				},
+				data: tripData,
 			})
 			navItems.push({
 				id: navId,
 				mainId: mainId,
-				label: tripId,
+				label: shortId || "",
 			})
 			if (i === 0) {
 				navSel = navId
 			}
 			prevNav = navId
+		}
+		console.log("nav count:", this.data.navCount)
+		for (let i = 0; i < this.data.navCount - 1; i++) {
+			navItems.push({
+				id: "",
+				mainId: "",
+				label: "",
+			})
 		}
 		this.setData({
 			mainItems,
@@ -264,5 +314,19 @@ Page({
 			navSel: selItem.dataset.navId,
 			navScroll: selItem.dataset.navScrollId,
 		})
-	}
+	},
+
+	onMianItemTap(e: any) {
+        if (!e.currentTarget.dataset.tripInProgress) {
+            return
+        }
+        const tripId = e.currentTarget.dataset.tripId
+        if (tripId) {
+            wx.navigateTo({
+                url: routing.driving({
+                    trip_id: tripId,
+                }),
+            })
+        }
+    }
 })
