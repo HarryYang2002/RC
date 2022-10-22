@@ -30,14 +30,14 @@ Page({
 					this.setData({
 						licImgURL: res.tempFiles[0].tempFilePath
 					})
-					setTimeout(() => {
-						this.setData({
-							licNo: '13523463',
-							name: 'Harry',
-							genderIndex: 1,
-							birthDate: '2002-06-06'
-						})
-					}, 1000)
+					const data = wx.getFileSystemManager().readFileSync(res.tempFiles[0].tempFilePath)
+					wx.request({
+						method: "PUT",
+						url: "https://szturc-1306570831.cos.ap-guangzhou.myqcloud.com/aaa.jpg?q-sign-algorithm=sha1&q-ak=AKIDgBg2WyMkQxHSJi3FOfpqqkn95675ukpz&q-sign-time=1666454150%3B1666457750&q-key-time=1666454150%3B1666457750&q-header-list=host&q-url-param-list=&q-signature=a925bcca67a7cc714194b9b444eb01ca29f1e139",
+						data,
+						success: console.log,
+						fail: console.error,
+					})
 				}
 			}
 		})
@@ -66,7 +66,7 @@ Page({
 			genderIndex: parseInt(e.detail.value),
 		})
 	},
-	
+
 	onBirthDateChange(e: any) {
 		this.setData({
 			birthDate: e.detail.value,
@@ -74,51 +74,51 @@ Page({
 	},
 
 	onSubmit() {
-        ProfileService.submitProfile({
-            licNumber: this.data.licNo,
-            name: this.data.name,
-            gender: this.data.genderIndex,
-            birthDateMillis: Date.parse(this.data.birthDate),
-        }).then(p => {
-            this.renderProfile(p)
-            this.scheduleProfileRefresher()
-        })
-    },
+		ProfileService.submitProfile({
+			licNumber: this.data.licNo,
+			name: this.data.name,
+			gender: this.data.genderIndex,
+			birthDateMillis: Date.parse(this.data.birthDate),
+		}).then(p => {
+			this.renderProfile(p)
+			this.scheduleProfileRefresher()
+		})
+	},
 
 	onUnload() {
-        this.clearProfileRefresher()
-    },
+		this.clearProfileRefresher()
+	},
 
 	scheduleProfileRefresher() {
-        this.profileRefresher = setInterval(() => {
-            ProfileService.getProfile().then(p => {
-                this.renderProfile(p)
-                if (p.identityStatus !== rental.v1.IdentityStatus.PENDING) {
-                    this.clearProfileRefresher()
-                }
-                if (p.identityStatus === rental.v1.IdentityStatus.VERIFIED) {
-                    this.onLicVerified()
-                }
-            })
-        }, 1000)
-    },
+		this.profileRefresher = setInterval(() => {
+			ProfileService.getProfile().then(p => {
+				this.renderProfile(p)
+				if (p.identityStatus !== rental.v1.IdentityStatus.PENDING) {
+					this.clearProfileRefresher()
+				}
+				if (p.identityStatus === rental.v1.IdentityStatus.VERIFIED) {
+					this.onLicVerified()
+				}
+			})
+		}, 1000)
+	},
 
 	clearProfileRefresher() {
-        if (this.profileRefresher) {
-            clearInterval(this.profileRefresher)
-            this.profileRefresher = 0
-        }
-    },
+		if (this.profileRefresher) {
+			clearInterval(this.profileRefresher)
+			this.profileRefresher = 0
+		}
+	},
 
 	onResubmit() {
 		ProfileService.clearProfile().then(p => this.renderProfile(p))
 	},
 
 	onLicVerified() {
-        if (this.redirectURL) {
-            wx.redirectTo({
-                url: this.redirectURL,
-            })
-        }
-    }
+		if (this.redirectURL) {
+			wx.redirectTo({
+				url: this.redirectURL,
+			})
+		}
+	}
 })
