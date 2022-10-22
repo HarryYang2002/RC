@@ -1,4 +1,5 @@
 import { IAppOption } from "../../appoption";
+import { ProfileService } from "../../service/profile";
 import { rental } from "../../service/proto_gen/rental/rental_pb";
 import { tripService } from "../../service/trip";
 import { formatDuration, formatFee } from "../../utils/format";
@@ -42,6 +43,12 @@ const tripStatusMap = new Map([
 	[rental.v1.TripStatus.IN_PROGRESS, "进行中"],
 	[rental.v1.TripStatus.FINISHED, "已完成"],
 	// [rental.v1.TripStatus.IS_NOT_SPECIFIED,""]
+])
+
+const licStatusMap = new Map([
+	[rental.v1.IdentityStatus.UNSUBMITTED, "未认证"],
+	[rental.v1.IdentityStatus.PENDING, "为认证"],
+	[rental.v1.IdentityStatus.VERIFIED, "已认证"]
 ])
 
 // pages/mytrips/mytrips.ts
@@ -95,6 +102,7 @@ Page({
 		navItems: [] as NavItem[],
 		navSel: '',
 		navScroll: '',
+		licStatus: licStatusMap.get(rental.v1.IdentityStatus.UNSUBMITTED),
 	},
 	onSwiperChange(e: any) {
 		console.log(e);
@@ -140,7 +148,7 @@ Page({
 		// const [trips] = await Promise.all([tripService.getTrips(),layoutReady])
 		// this.populateTrips(trips.trips!)
 		//获取所有的trip
-		Promise.all([tripService.getTrips(), layoutReady]).then(([trips]) =>{
+		Promise.all([tripService.getTrips(), layoutReady]).then(([trips]) => {
 			this.populateTrips(trips.trips!)
 		})
 		//获取指定状态下的trip
@@ -161,6 +169,14 @@ Page({
 				})
 				console.log(err);
 			},
+		})
+	},
+
+	onShow() {
+		ProfileService.getProfile().then(p => {
+			this.setData({
+				licStatus: licStatusMap.get(p.identityStatus || 0)
+			})
 		})
 	},
 
@@ -204,7 +220,7 @@ Page({
 				duration: '',
 				fee: '',
 				status: tripStatusMap.get(trip.trip?.status!) || "未知",
-				inProgress: trip.trip?.status ===  rental.v1.TripStatus.IN_PROGRESS,
+				inProgress: trip.trip?.status === rental.v1.TripStatus.IN_PROGRESS,
 			}
 			const end = trip.trip?.end
 
@@ -317,16 +333,16 @@ Page({
 	},
 
 	onMianItemTap(e: any) {
-        if (!e.currentTarget.dataset.tripInProgress) {
-            return
-        }
-        const tripId = e.currentTarget.dataset.tripId
-        if (tripId) {
-            wx.navigateTo({
-                url: routing.driving({
-                    trip_id: tripId,
-                }),
-            })
-        }
-    }
+		if (!e.currentTarget.dataset.tripInProgress) {
+			return
+		}
+		const tripId = e.currentTarget.dataset.tripId
+		if (tripId) {
+			wx.navigateTo({
+				url: routing.driving({
+					trip_id: tripId,
+				}),
+			})
+		}
+	}
 })

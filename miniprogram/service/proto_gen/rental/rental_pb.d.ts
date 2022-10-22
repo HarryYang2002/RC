@@ -687,7 +687,7 @@ export namespace rental {
              * Converts this Identity to JSON.
              * @returns JSON object
              */
-            public toJSON(): { [k: string]: any };
+            //public toJSON(): { [k: string]: any };
         }
 
         /** Properties of a GetProfileRequest. */

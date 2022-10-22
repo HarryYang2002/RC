@@ -74,7 +74,7 @@ Page({
 	},
 
 	onSubmit() {
-		ProfileService.submitProfile({
+        ProfileService.submitProfile({
             licNumber: this.data.licNo,
             name: this.data.name,
             gender: this.data.genderIndex,
@@ -83,7 +83,7 @@ Page({
             this.renderProfile(p)
             this.scheduleProfileRefresher()
         })
-	},
+    },
 
 	onUnload() {
         this.clearProfileRefresher()

@@ -1,3 +1,4 @@
+import { ProfileService } from "../../service/profile";
 import { rental } from "../../service/proto_gen/rental/rental_pb";
 import { tripService } from "../../service/trip";
 import { routing } from "../../utils/routing";
@@ -113,28 +114,36 @@ Page({
 			// return
 		} else {
 			wx.scanCode({
-				success: () => {
-					wx.showModal({
-						title: "身份认证",
-						content: "需要身份认证才能租车",
-						success: (res) => {
-							if (res.confirm) {
-								console.log('用户点击确定')
-								const carID = "car123"
-								const redirectURL = routing.lock({
-									car_id: carID,
-								})
-								wx.navigateTo({
-									//url: `/pages/register/register?redirect=${encodeURIComponent(redirectURL)}`
-									url: routing.register({
-										redirectURL: redirectURL,
-									})
-								})
-							} else if (res.cancel) {
-								console.log("用户点击取消")
-							}
-						},
+				success: async () => {
+					const carID = "car123"
+					const lockURL = routing.lock({
+						car_id: carID,
 					})
+					const prof = await ProfileService.getProfile()
+					if (prof.identityStatus === rental.v1.IdentityStatus.VERIFIED) {
+						wx.navigateTo({
+							url: lockURL
+						})
+					} else {
+						wx.showModal({
+							title: "身份认证",
+							content: "需要身份认证才能租车",
+							success: (res) => {
+								if (res.confirm) {
+									console.log('用户点击确定')
+									wx.navigateTo({
+										//url: `/pages/register/register?redirect=${encodeURIComponent(redirectURL)}`
+										url: routing.register({
+											redirectURL: lockURL,
+										})
+									})
+								} else if (res.cancel) {
+									console.log("用户点击取消")
+								}
+							},
+						})
+					}
+
 				},
 				fail: console.error,
 			})
