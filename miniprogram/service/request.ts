@@ -6,12 +6,12 @@ export namespace SZTURC {
     const AUTH_ERR = 'AUTH_ERR'
 
     const authData = {
-        token: "",
+        token: '',
         expiryMs: 0,
     }
 
     export interface RequestOption<REQ, RES> {
-        method: "GET" | "PUT" | "POST" | "DELETE",
+        method: 'GET' | 'PUT' | 'POST' | 'DELETE'
         path: string
         data?: REQ
         respMarshaller: (r: object) => RES
@@ -32,7 +32,7 @@ export namespace SZTURC {
             return sendRequest(o, authOpt)
         } catch (err) {
             if (err === AUTH_ERR && authOpt.retryOnAuthError) {
-                authData.token = ""
+                authData.token = ''
                 authData.expiryMs = 0
                 return sendRequestWithAuthRetry(o, {
                     attachAuthHeader: authOpt.attachAuthHeader,
@@ -51,12 +51,12 @@ export namespace SZTURC {
         const wxResp = await wxLogin()
         const reqTimeMs = Date.now()
         const resp = await sendRequest<auth.v1.ILoginRequest, auth.v1.ILoginResponse>({
-            method: "POST",
-            path: "/v1/auth/login",
+            method: 'POST',
+            path: '/v1/auth/login',
             data: {
                 code: wxResp.code,
             },
-            respMarshaller: auth.v1.LoginResponse.fromObject
+            respMarshaller: auth.v1.LoginResponse.fromObject,
         }, {
             attachAuthHeader: false,
             retryOnAuthError: false,
@@ -70,7 +70,7 @@ export namespace SZTURC {
             const header: Record<string, any> = {}
             if (a.attachAuthHeader) {
                 if (authData.token && authData.expiryMs >= Date.now()) {
-                    header.authorization = "Bearer " + authData.token
+                    header.authorization = 'Bearer ' + authData.token
                 } else {
                     reject(AUTH_ERR)
                     return
@@ -102,6 +102,29 @@ export namespace SZTURC {
         return new Promise((resolve, reject) => {
             wx.login({
                 success: resolve,
+                fail: reject,
+            })
+        })
+    }
+
+    export interface UploadFileOpts {
+        localPath: string
+        url: string
+    }
+    export function uploadfile(o: UploadFileOpts): Promise<void> {
+        const data = wx.getFileSystemManager().readFileSync(o.localPath)
+        return new Promise((resolve, reject) => {
+            wx.request({
+                method: 'PUT',
+                url: o.url,
+                data,
+                success: res => {
+                    if (res.statusCode >= 400) {
+                        reject(res)
+                    } else {
+                        resolve()
+                    }
+                },
                 fail: reject,
             })
         })
