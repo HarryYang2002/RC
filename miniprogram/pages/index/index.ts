@@ -115,7 +115,8 @@ Page({
 		} else {
 			wx.scanCode({
 				success: async () => {
-					const carID = "car123"
+					//模拟汽车
+					const carID = "6363f1158cdd97be8c37c998"
 					const lockURL = routing.lock({
 						car_id: carID,
 					})
