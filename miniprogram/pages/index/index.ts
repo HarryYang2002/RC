@@ -5,6 +5,8 @@ import { routing } from "../../utils/routing";
 
 Page({
 	isPageShowing: false,
+	socket: undefined as WechatMiniprogram.SocketTask | undefined,
+
 	location: {
 		latitude: 22.71991,
 		longitude: 114.24779
@@ -52,6 +54,24 @@ Page({
 	},
 
 	onLoad() {
+		this.socket = wx.connectSocket({
+			url: "ws://localhost:9090/ws"
+		})
+		let msgReceived = 0
+		this.socket?.onMessage(msg => {
+			msgReceived++
+			console.log(msg)
+		})
+
+		setInterval(() => {
+			this.socket?.send({
+				data: JSON.stringify({
+					msg_received: msgReceived,
+				})
+			})
+		},3000)
+
+
 		let that = this
 		wx.getStorage({
 			key: 'userInfo',
@@ -67,6 +87,10 @@ Page({
 	},
 
 	onMyLocationTap() {
+		this.socket?.close({
+			reason:"main",
+		})
+		//wx.closeSocket()
 		wx.getLocation({
 			type: 'gcj02',
 			success: res => {
