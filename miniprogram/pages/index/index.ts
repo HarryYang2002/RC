@@ -1,3 +1,4 @@
+import { CarService } from "../../service/car";
 import { ProfileService } from "../../service/profile";
 import { rental } from "../../service/proto_gen/rental/rental_pb";
 import { tripService } from "../../service/trip";
@@ -54,23 +55,11 @@ Page({
 	},
 
 	onLoad() {
-		this.socket = wx.connectSocket({
-			url: "ws://localhost:9090/ws"
-		})
 		let msgReceived = 0
-		this.socket?.onMessage(msg => {
+		this.socket = CarService.subscribe(msg => {
 			msgReceived++
 			console.log(msg)
 		})
-
-		setInterval(() => {
-			this.socket?.send({
-				data: JSON.stringify({
-					msg_received: msgReceived,
-				})
-			})
-		},3000)
-
 
 		let that = this
 		wx.getStorage({
