@@ -77,6 +77,8 @@ export namespace SZTURC {
                     return
                 }
             }
+            //测试个恶意请求，检验安全性
+            header["Grpc-Metadata-impersonate-account-id"] = "bad-account"
             wx.request({
                 url: serverAddr + o.path,
                 method: o.method,

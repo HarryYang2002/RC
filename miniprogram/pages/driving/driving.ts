@@ -58,8 +58,8 @@ Page({
     },
 
     async setupTimer(tripID: string) {
-        const trip = await tripService.updateTripPos(tripID)
-        if (trip.status !== rental.v1.TripStatus.IN_PROGRESS){
+        const trip = await tripService.getTrip(tripID)
+        if (trip.status !== rental.v1.TripStatus.IN_PROGRESS) {
             console.log("trip not in progress")
             return
         }
@@ -74,10 +74,7 @@ Page({
         this.timer = setInterval(() => {
             secSinceLastUpdate++
             if (secSinceLastUpdate % updateIntervalSec === 0) {
-                tripService.updateTripPos(tripID, {
-                    latitude: this.data.location.latitude,
-                    longitude: this.data.location.longitude,
-                }).then(trip => {
+                tripService.getTrip(tripID).then(trip => {
                     lastUpdateDurationSec = trip.current!.timestampSec! - trip.start!.timestampSec!
                     secSinceLastUpdate = 0
                     this.setData({

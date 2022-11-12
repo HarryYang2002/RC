@@ -4,6 +4,20 @@ import { rental } from "../../service/proto_gen/rental/rental_pb";
 import { tripService } from "../../service/trip";
 import { routing } from "../../utils/routing";
 
+
+interface Marker {
+	iconPath: string
+	id: number
+	latitude: number
+	longitude: number
+	width: number
+	height: number
+}
+
+const defaultAvatar = "/resources/car.png"
+const initialLat = 30
+const initialLng = 120
+
 Page({
 	isPageShowing: false,
 	socket: undefined as WechatMiniprogram.SocketTask | undefined,
@@ -31,35 +45,20 @@ Page({
 			enableTraffic: false,
 		},
 		location: {
-			latitude: 22.71991,
-			longitude: 114.24779,
+			latitude: initialLat,
+			longitude: initialLng,
 		},
-		scale: 10,
-		markers: [{
-			iconPath: "/resources/car.png",
-			id: 0,
-			latitude: 23.099994,
-			longitude: 113.324520,
-			width: 50,
-			height: 50
-		},
-		{
-			iconPath: "/resources/car.png",
-			id: 1,
-			latitude: 23.099994,
-			longitude: 114.324520,
-			width: 50,
-			height: 50
-		},
-		]
+		scale: 17,
+		markers: [] as Marker[],
 	},
 
 	onLoad() {
-		let msgReceived = 0
-		this.socket = CarService.subscribe(msg => {
-			msgReceived++
-			console.log(msg)
-		})
+		//之前测试socket的遗留代码
+		// let msgReceived = 0
+		// this.socket = CarService.subscribe(msg => {
+		// 	msgReceived++
+		// 	console.log(msg)
+		// })
 
 		let that = this
 		wx.getStorage({
@@ -76,9 +75,10 @@ Page({
 	},
 
 	onMyLocationTap() {
-		this.socket?.close({
-			reason:"main",
-		})
+		//之前测试socket的遗留代码
+		// this.socket?.close({
+		// 	reason: "main",
+		// })
 		//wx.closeSocket()
 		wx.getLocation({
 			type: 'gcj02',
@@ -129,7 +129,7 @@ Page({
 			wx.scanCode({
 				success: async () => {
 					//模拟汽车
-					const carID = "6363f1158cdd97be8c37c998"
+					const carID = "636d2149af85de7d42a7a754"
 					const lockURL = routing.lock({
 						car_id: carID,
 					})
@@ -181,9 +181,23 @@ Page({
 				console.log(err);
 			},
 		})
+		if (!this.socket) {
+			this.setData({
+				markers: []
+			}, () => {
+				this.setupCarPosUpdater()
+			})
+		}
 	},
 	onHide() {
 		this.isPageShowing = false;
+		if (this.socket) {
+			this.socket.close({
+				success: () => {
+					this.socket = undefined
+				}
+			})
+		}
 	},
 
 	onMyTripsTap() {
@@ -192,32 +206,94 @@ Page({
 		})
 	},
 
-	moveCars() {
+	setupCarPosUpdater() {
 		const map = wx.createMapContext("map")
-		// const dest = {
-		// 	latitude: 23.099994,
-		// 	longitude: 113.324520
-		// }
-
-		const moveCar = () => {
-			this.location.latitude += 0.1
-			this.location.longitude += 0.1
-			map.translateMarker({
-				destination: {
-					latitude: this.location.latitude,
-					longitude: this.location.longitude,
-				},
-				markerId: 0,
-				autoRotate: false,
-				rotate: 0,
-				duration: 5000,
-				animationEnd: () => {
-					if (this.isPageShowing) {
-						moveCar()
-					}
-				},
-			})
+		const markersByCarID = new Map<string, Marker>()
+		let translationInProgress = false
+		const endTranslation = () => {
+			translationInProgress = false
 		}
-		moveCar()
-	}
+		this.socket = CarService.subscribe(car => {
+			if (!car.id || translationInProgress || !this.isPageShowing) {
+				console.log("dropped")
+				return
+			}
+			const marker = markersByCarID.get(car.id)
+			if (!marker) {
+				const newMarker: Marker = {
+					id: this.data.markers.length,
+					iconPath: car.car?.driver?.avatarUrl || defaultAvatar,
+					latitude: car.car?.position?.latitude || initialLat,
+					longitude: car.car?.position?.longitude || initialLng,
+					height: 20,
+					width: 20,
+				}
+				markersByCarID.set(car.id, newMarker)
+				this.data.markers.push(newMarker)
+				translationInProgress = true
+				this.setData({
+					markers: this.data.markers,
+				}, endTranslation)
+				return
+			}
+			const newLat = car.car?.position?.latitude || initialLat
+			const newLng = car.car?.position?.longitude || initialLng
+			const newAvatar = car.car?.driver?.avatarUrl || defaultAvatar
+			if (marker.iconPath !== newAvatar) {
+				marker.iconPath = newAvatar
+				marker.latitude = newLat
+				marker.longitude = newLng
+				translationInProgress = true
+				this.setData({
+					markers: this.data.markers,
+				}, endTranslation)
+				return
+			}
+
+			if (marker.latitude !== newLat || marker.longitude !== newLng) {
+				translationInProgress = true
+				map.translateMarker({
+					destination: {
+						latitude: newLat,
+						longitude: newLng,
+					},
+					markerId: marker.id,
+					autoRotate: false,
+					rotate: 0,
+					duration: 900,
+					animationEnd: endTranslation,
+				})
+			}
+		})
+	},
+
+	//模拟汽车移动，后面不需要
+	// moveCars() {
+	// 	const map = wx.createMapContext("map")
+	// 	// const dest = {
+	// 	// 	latitude: 23.099994,
+	// 	// 	longitude: 113.324520
+	// 	// }
+
+	// 	const moveCar = () => {
+	// 		this.location.latitude += 0.1
+	// 		this.location.longitude += 0.1
+	// 		map.translateMarker({
+	// 			destination: {
+	// 				latitude: this.location.latitude,
+	// 				longitude: this.location.longitude,
+	// 			},
+	// 			markerId: 0,
+	// 			autoRotate: false,
+	// 			rotate: 0,
+	// 			duration: 5000,
+	// 			animationEnd: () => {
+	// 				if (this.isPageShowing) {
+	// 					moveCar()
+	// 				}
+	// 			},
+	// 		})
+	// 	}
+	// 	moveCar()
+	// }
 })
